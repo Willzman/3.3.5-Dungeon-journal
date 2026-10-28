@@ -47,6 +47,26 @@ for _, inst in ipairs(DJ.Instances) do
 end
 print(string.format("visited %d instances, %d boss pages", #DJ.Instances, pages))
 
+-- Abilities view
+local withAbilities = 0
+for _, inst in ipairs(DJ.Instances) do
+    DJ.OpenInstance(inst)
+    local page = DJ.pages.instance
+    for _, boss in ipairs(page.bosses) do
+        page:SelectBoss(boss.index)
+        page:SetView("abilities")
+        if page.view == "abilities" then withAbilities = withAbilities + 1 end
+    end
+end
+print("boss pages with an Abilities view:", withAbilities)
+check(withAbilities > 400, "abilities shown for most bosses")
+DJ.OpenInstance("Ragefire", 1)
+check(DJ.pages.instance.view == "abilities", "abilities view is remembered")
+local rows = 0
+for _, f in ipairs(AllFrames()) do if rawget(f, "spell") and f:IsVisible() then rows = rows + 1 end end
+check(rows >= 2, "Taragaman ability rows shown (" .. rows .. ")")
+DJ.pages.instance:SetView("loot")
+
 -- Item requests resolve and refresh
 for i = 1, 200 do AdvanceTime(0.2) end
 

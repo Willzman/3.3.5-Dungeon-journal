@@ -12,8 +12,10 @@ Data\Instances.lua
 Data\Items.lua
 Data\Portraits.lua
 Data\DungeonMaps.lua
+Data\Abilities.lua
 Core\Data.lua
 Core\Items.lua
+Core\Spells.lua
 UI\Theme.lua
 UI\Widgets.lua
 UI\Main.lua

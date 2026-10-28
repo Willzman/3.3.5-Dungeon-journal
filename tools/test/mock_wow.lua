@@ -20,7 +20,7 @@ local METHODS = {
     "SetTexture", "GetTexture", "SetTexCoord", "SetVertexColor", "SetBlendMode", "SetGradientAlpha", "SetGradient",
     "SetDesaturated", "SetDrawLayer",
     -- FontString
-    "SetFont", "GetFont", "SetTextColor", "SetJustifyH", "SetJustifyV", "GetStringWidth", "SetFontObject", "SetShadowOffset",
+    "SetFont", "GetFont", "SetTextColor", "GetTextColor", "SetJustifyH", "SetJustifyV", "GetStringWidth", "SetFontObject", "SetShadowOffset",
     "SetNonSpaceWrap",
     -- EditBox
     "SetAutoFocus", "SetMaxLetters", "ClearFocus", "SetFocus", "HighlightText",
@@ -205,6 +205,9 @@ function Widget:SetHyperlink(link)
     if id then requested[id] = true end
     return origSetHyperlink(self, link)
 end
+function GetSpellInfo(id) if id % 997 == 0 then return nil end return "Spell " .. (id % 500), nil, "Interface\\Icons\\Spell_Fire_Fire" end
+function GetSpellLink(id) return "|cff71d5ff|Hspell:" .. id .. "|h[Spell]|h|r" end
+function Widget:GetTextColor() return 1, 0.82, 0 end
 function GetItemIcon(id) return "Interface\\Icons\\INV_Misc_QuestionMark" end
 function GetItemCount() return 0 end
 function GetAuctionItemSubClasses(i)

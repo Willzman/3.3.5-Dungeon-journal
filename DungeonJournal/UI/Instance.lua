@@ -249,6 +249,69 @@ local filterNote = DJ.Text(bossHeader, "GameFontNormalSmall", 10, "RIGHT")
 filterNote:SetPoint("TOPRIGHT", -8, -6)
 filterNote:SetText("|cffff8040" .. L.FILTER_ACTIVE .. "|r")
 
+-- Loot / Abilities switch under the boss name.
+local viewButtons = {}
+viewButtons.loot = DJ.Button(bossHeader, L.VIEW_LOOT, 80, 22, function() page:SetView("loot") end)
+viewButtons.loot:SetPoint("BOTTOMLEFT", bigPortraitBg, "BOTTOMRIGHT", 12, 4)
+viewButtons.abilities = DJ.Button(bossHeader, L.VIEW_ABILITIES, 80, 22, function() page:SetView("abilities") end)
+viewButtons.abilities:SetPoint("LEFT", viewButtons.loot, "RIGHT", 4, 0)
+
+local function Ability_OnEnter(self)
+    if not self.spell then return end
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:SetHyperlink("spell:" .. self.spell.id)
+    GameTooltip:Show()
+end
+
+local function Ability_OnClick(self)
+    if self.spell and IsModifiedClick("CHATLINK") then
+        ChatEdit_InsertLink(GetSpellLink(self.spell.id))
+    end
+end
+
+local function CreateAbilityRow(list)
+    local row = CreateFrame("Button", nil, list)
+    row:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1,
+        insets = { left = 1, right = 1, top = 1, bottom = 1 } })
+    row.icon = row:CreateTexture(nil, "ARTWORK")
+    DJ.Size(row.icon, 36, 36)
+    row.icon:SetPoint("TOPLEFT", 6, -7)
+    row.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    row.name = DJ.Text(row, "GameFontNormal", 13)
+    row.name:SetPoint("TOPLEFT", row.icon, "TOPRIGHT", 9, 0)
+    row.name:SetPoint("RIGHT", -8, 0)
+    row.name:SetHeight(15)
+    row.desc = DJ.Text(row, "GameFontHighlightSmall", 11)
+    row.desc:SetPoint("TOPLEFT", row.name, "BOTTOMLEFT", 0, -3)
+    row.desc:SetPoint("BOTTOMRIGHT", -8, 5)
+    row.desc:SetJustifyV("TOP")
+    local hl = row:CreateTexture(nil, "HIGHLIGHT")
+    hl:SetTexture("Interface\\Buttons\\WHITE8X8")
+    hl:SetPoint("TOPLEFT", 1, -1)
+    hl:SetPoint("BOTTOMRIGHT", -1, 1)
+    hl:SetVertexColor(1, 1, 1, 0.07)
+    row:SetScript("OnEnter", Ability_OnEnter)
+    row:SetScript("OnLeave", GameTooltip_Hide)
+    row:SetScript("OnClick", Ability_OnClick)
+    return row
+end
+
+local function UpdateAbilityRow(row, spell)
+    local t = DJ.theme
+    row.spell = spell
+    row:SetBackdropColor(t.lootRow[1], t.lootRow[2], t.lootRow[3], t.lootRow[4])
+    row:SetBackdropBorderColor(t.border[1], t.border[2], t.border[3], 0.35)
+    row.icon:SetTexture(spell.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
+    row.name:SetText(spell.name)
+    row.name:SetTextColor(t.title[1], t.title[2], t.title[3])
+    row.desc:SetText(DJ.SpellDescription(spell.id) or "")
+    row.desc:SetTextColor(t.text[1], t.text[2], t.text[3])
+end
+
+local abilityList = DJ.ScrollList(lootPane, { rowHeight = 62, spacing = 4, createRow = CreateAbilityRow, updateRow = UpdateAbilityRow })
+abilityList:SetPoint("TOPLEFT", bossHeader, "BOTTOMLEFT", 0, -6)
+abilityList:SetPoint("BOTTOMRIGHT", -4, 6)
+
 ------------------------------------------------------------------------
 -- Right column: map tab. Two kinds of map:
 --  * retail-style dungeon maps from the client's map patch, drawn like the
@@ -481,12 +544,36 @@ function page:SelectBoss(index)
     DJ.SetBossPortrait(bigPortrait, bigIcon, boss)
     bossList:Refresh()
     if self.tab ~= "loot" then self:SetTab("loot") end
-    self:RefreshLoot()
+    self:SetView(DJ.db.bossView or "loot")
+end
+
+-- "loot" or "abilities" for the selected boss.
+function page:SetView(view)
+    local abilities = self.boss and DJ.BossAbilities(self.boss) or {}
+    if self.boss and (self.boss.extra or #abilities == 0) then
+        viewButtons.abilities:Disable()
+        if view == "abilities" then view = "loot" end
+    else
+        viewButtons.abilities:Enable()
+        DJ.db.bossView = view
+    end
+    self.view = view
+    for v, b in pairs(viewButtons) do b:SetSelected(v == view) end
+    if view == "abilities" then
+        lootList:Hide(); filterNote:Hide()
+        abilityList:Show()
+        abilityList:SetData(abilities)
+        emptyText:Hide()
+    else
+        abilityList:Hide()
+        lootList:Show()
+        self:RefreshLoot()
+    end
 end
 
 function page:RefreshLoot(keepOffset)
     local boss = self.boss
-    if not boss then return end
+    if not boss or self.view == "abilities" then return end
     local loot = DJ.GetLoot(boss, self.mode) or {}
     local data, filtering = {}, DJ.FilterActive()
     local pendingHeader

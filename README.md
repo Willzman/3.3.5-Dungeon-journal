@@ -22,6 +22,9 @@ Interface 30300) API.
     for Wrath raids.
   - **Faction-specific loot** (Trial of the Crusader, Koralon, etc.) shows your faction's items.
   - **Trash drops** and extra pages (patterns, chests, bonus loot).
+- **Boss abilities** (Loot / Abilities buttons on each boss) for about 500 bosses: spell icon, name
+  and description from your client's own spell data. Hover for the full spell tooltip; Shift-click
+  to link the spell in chat.
 - **Map tab** with retail-style dungeon maps for every instance, floor by floor, read from the
   `patch-M.mpq` map patch in your `Data` folder. The Atlas maps (all wings and entrances) and their
   numbered map key are still there, and are used on their own when the patch is not installed.
@@ -96,6 +99,14 @@ python3 tools/convert.py al_raw.json enh.json atlas.json DungeonJournal/Data
 ```
 
 Instance names, zones, short codes, map pages and the Enhanced overrides are listed in `tools/meta.py`.
+
+Boss abilities come from the DBM boss mods for 3.3.5a and AzerothCore's 3.3.5a server scripts
+(SmartAI and C++ boss scripts), with server-side helper spells filtered out:
+
+```bash
+git clone https://github.com/azerothcore/azerothcore-wotlk ac
+python3 tools/abilities.py tc ac DungeonJournal/Data/Instances.lua DungeonJournal/Data/Abilities.lua
+```
 
 The retail-style map floors come from the patch's file list (`tools/data/patch-M-listfile.txt`):
 
