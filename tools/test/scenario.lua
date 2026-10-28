@@ -51,11 +51,12 @@ check(DJ.pages.instance.mode == "R25H", "ICC opens on 25 heroic")
 local rendered, models = 0, 0
 for _, f in ipairs(AllFrames()) do
     if rawget(f, "itemID") and f:IsVisible() then rendered = rendered + 1 end
-    if rawget(f, "kind") == "PlayerModel" and rawget(f, "model") and f:IsVisible() then models = models + 1 end
+    local t = rawget(f, "texture")
+    if type(t) == "string" and t:find("Bosses") and f:IsVisible() then models = models + 1 end
 end
-print("visible item rows on ICC Sindragosa 25H:", rendered, "boss models:", models)
+print("visible item rows on ICC Sindragosa 25H:", rendered, "boss portraits:", models)
 check(rendered >= 10, "loot rows rendered")
-check(models >= 5, "boss models rendered")
+check(models >= 5, "boss portraits rendered")
 DJ.GoBack()
 check(DJ.CurrentPage() == "home", "back returns home")
 

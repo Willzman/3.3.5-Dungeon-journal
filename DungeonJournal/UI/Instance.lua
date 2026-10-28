@@ -8,55 +8,39 @@ DJ.RegisterPage("instance", page)
 local LEFT_W = 262
 
 ------------------------------------------------------------------------
--- Boss models. On 3.3.5a SetCreature only draws a creature the client has
--- cached; for others the client asks the server, and the model appears only
--- if SetCreature is called again after the answer arrives. So the model is
--- re-applied a few times until GetModel reports a model file.
+-- Boss portraits: Encounter Journal art bundled in Media/Bosses (2:1 images).
+-- The 3.3.5a client cannot draw creature models it has not cached, so there
+-- are no 3D models. Bosses without a portrait show their instance's art.
 ------------------------------------------------------------------------
-local RETRY_DELAYS = { 0.25, 0.75, 1.5, 3, 6 }
-
-local function ModelLoaded(model)
-    local m = model:GetModel()
-    return type(m) == "string" and m ~= ""
-end
-
-local function ApplyModel(model, boss)
-    if boss.npc then
-        model:SetCreature(boss.npc)
-    end
-    if not ModelLoaded(model) and boss.display and model.SetDisplayInfo then
-        pcall(model.SetDisplayInfo, model, boss.display)
-    end
-    model:SetFacing(model.baseFacing or 0)
-end
-
-function DJ.SetBossModel(model, boss)
-    model.boss = boss
-    model.fallback:Hide()
-    model:ClearModel()
-    if not (boss.npc or boss.display) then
-        model.fallback:Show()
-        return
-    end
-    ApplyModel(model, boss)
-    for i, delay in ipairs(RETRY_DELAYS) do
-        DJ.After(delay, function()
-            if model.boss ~= boss or ModelLoaded(model) then return end
-            ApplyModel(model, boss)
-            if i == #RETRY_DELAYS and not ModelLoaded(model) then model.fallback:Show() end
-        end)
-    end
-end
-
--- Hidden models lose their model on 3.3.5a; set it again when shown.
-local function Model_OnShow(self)
-    if self.boss then DJ.SetBossModel(self, self.boss) end
-end
-
-local function BossIcon(boss)
+local function ExtraIcon(boss)
     if boss.trash then return "Interface\\Icons\\INV_Misc_Bag_09" end
     if boss.extra then return "Interface\\Icons\\INV_Box_01" end
-    return "Interface\\Icons\\INV_Misc_Bone_HumanSkull_02"
+end
+
+-- Fills `portrait` (2:1) or, for trash and extra pages, the square `icon`.
+function DJ.SetBossPortrait(portrait, icon, boss)
+    local extra = ExtraIcon(boss)
+    if extra then
+        portrait:Hide()
+        icon:SetTexture(extra)
+        icon:Show()
+        return
+    end
+    icon:Hide()
+    portrait:Show()
+    local p = DJ.Portraits[boss.name]
+    if type(p) == "table" then p = p[DJ.PlayerFaction()] end
+    if p then
+        portrait:SetTexture(DJ.MEDIA .. "Bosses\\" .. p)
+        portrait:SetTexCoord(0, 1, 0, 1)
+        portrait:SetVertexColor(1, 1, 1)
+    elseif DJ.SetCoverArt(portrait, boss.instance) then
+        portrait:SetVertexColor(0.75, 0.75, 0.75)
+    else
+        portrait:Hide()
+        icon:SetTexture(DJ.KIND_ICONS[boss.instance.kind])
+        icon:Show()
+    end
 end
 
 ------------------------------------------------------------------------
@@ -125,17 +109,14 @@ local function CreateBossRow(list)
         insets = { left = 1, right = 1, top = 1, bottom = 1 } })
     row.portraitBg = row:CreateTexture(nil, "BACKGROUND")
     row.portraitBg:SetTexture("Interface\\Buttons\\WHITE8X8")
-    row.portraitBg:SetVertexColor(0, 0, 0, 0.6)
-    DJ.Size(row.portraitBg, 38, 38)
+    row.portraitBg:SetVertexColor(0, 0, 0, 0.45)
+    DJ.Size(row.portraitBg, 76, 38)
     row.portraitBg:SetPoint("LEFT", 4, 0)
-    row.model = CreateFrame("PlayerModel", nil, row)
-    row.model:SetAllPoints(row.portraitBg)
-    row.model.fallback = row:CreateTexture(nil, "ARTWORK")
-    row.model.fallback:SetAllPoints(row.portraitBg)
-    row.model.fallback:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    row.model:SetScript("OnShow", Model_OnShow)
+    row.portrait = row:CreateTexture(nil, "ARTWORK")
+    row.portrait:SetAllPoints(row.portraitBg)
     row.icon = row:CreateTexture(nil, "ARTWORK")
-    row.icon:SetAllPoints(row.portraitBg)
+    DJ.Size(row.icon, 34, 34)
+    row.icon:SetPoint("CENTER", row.portraitBg, "CENTER")
     row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     row.name = DJ.Text(row, "GameFontNormal", 12)
     row.name:SetPoint("TOPLEFT", row.portraitBg, "TOPRIGHT", 8, -3)
@@ -187,17 +168,7 @@ local function UpdateBossRow(row, boss)
     if not boss.loot[page.mode] then sub = sub .. "  |cff808080(" .. L.NO_LOOT .. ")|r" end
     row.sub:SetText(sub)
     row.sub:SetTextColor(t.muted[1], t.muted[2], t.muted[3])
-    if boss.npc or boss.display then
-        row.icon:Hide()
-        row.model.fallback:SetTexture(BossIcon(boss))
-        row.model:Show()
-        if row.model.boss ~= boss then DJ.SetBossModel(row.model, boss) end
-    else
-        row.model:Hide()
-        row.model.fallback:Hide()
-        row.icon:SetTexture(BossIcon(boss))
-        row.icon:Show()
-    end
+    DJ.SetBossPortrait(row.portrait, row.icon, boss)
     if selected then row.arrow:Show() else row.arrow:Hide() end
 end
 
@@ -238,32 +209,20 @@ bossHeader:SetPoint("TOPLEFT", 6, -6)
 bossHeader:SetPoint("TOPRIGHT", -6, -6)
 bossHeader:SetHeight(92)
 
-local bigModelBg = bossHeader:CreateTexture(nil, "BACKGROUND")
-bigModelBg:SetTexture("Interface\\Buttons\\WHITE8X8")
-bigModelBg:SetVertexColor(0, 0, 0, 0.45)
-DJ.Size(bigModelBg, 84, 84)
-bigModelBg:SetPoint("LEFT", 4, 0)
-local bigModel = CreateFrame("PlayerModel", nil, bossHeader)
-bigModel:SetAllPoints(bigModelBg)
-bigModel.fallback = bossHeader:CreateTexture(nil, "ARTWORK")
-DJ.Size(bigModel.fallback, 56, 56)
-bigModel.fallback:SetPoint("CENTER", bigModelBg, "CENTER")
-bigModel.fallback:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-bigModel:SetScript("OnShow", Model_OnShow)
-bigModel.baseFacing = 0.35
-bigModel:EnableMouse(true)
-bigModel:SetScript("OnMouseDown", function(self) self.dragX = GetCursorPosition() end)
-bigModel:SetScript("OnMouseUp", function(self) self.dragX = nil end)
-bigModel:SetScript("OnUpdate", function(self)
-    if self.dragX then
-        local x = GetCursorPosition()
-        self:SetFacing(self:GetFacing() + (x - self.dragX) / 60)
-        self.dragX = x
-    end
-end)
+local bigPortraitBg = bossHeader:CreateTexture(nil, "BACKGROUND")
+bigPortraitBg:SetTexture("Interface\\Buttons\\WHITE8X8")
+bigPortraitBg:SetVertexColor(0, 0, 0, 0.45)
+DJ.Size(bigPortraitBg, 168, 84)
+bigPortraitBg:SetPoint("LEFT", 4, 0)
+local bigPortrait = bossHeader:CreateTexture(nil, "ARTWORK")
+bigPortrait:SetAllPoints(bigPortraitBg)
+local bigIcon = bossHeader:CreateTexture(nil, "ARTWORK")
+DJ.Size(bigIcon, 56, 56)
+bigIcon:SetPoint("CENTER", bigPortraitBg, "CENTER")
+bigIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
 local bossName = DJ.Text(bossHeader, "GameFontNormalLarge", 17)
-bossName:SetPoint("TOPLEFT", bigModelBg, "TOPRIGHT", 12, -4)
+bossName:SetPoint("TOPLEFT", bigPortraitBg, "TOPRIGHT", 12, -4)
 bossName:SetPoint("RIGHT", -10, 0)
 local bossInfo = DJ.Text(bossHeader, "GameFontHighlight", 11)
 bossInfo:SetPoint("TOPLEFT", bossName, "BOTTOMLEFT", 0, -4)
@@ -397,15 +356,7 @@ function page:SelectBoss(index)
     if boss.rare then info[#info + 1] = L.RARE end
     info[#info + 1] = self.inst.name
     bossInfo:SetText(table.concat(info, "  -  "))
-    if boss.npc or boss.display then
-        bigModel:Show()
-        bigModel.fallback:SetTexture(BossIcon(boss))
-        DJ.SetBossModel(bigModel, boss)
-    else
-        bigModel:Hide()
-        bigModel.fallback:SetTexture(BossIcon(boss))
-        bigModel.fallback:Show()
-    end
+    DJ.SetBossPortrait(bigPortrait, bigIcon, boss)
     bossList:Refresh()
     if self.tab ~= "loot" then self:SetTab("loot") end
     self:RefreshLoot()
