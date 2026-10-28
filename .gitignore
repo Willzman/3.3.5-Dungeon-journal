@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+al_raw.json
+enh.json
+atlas.json
+maps.json

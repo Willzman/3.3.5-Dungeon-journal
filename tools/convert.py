@@ -386,6 +386,6 @@ with open(out_dir + '/Items.lua', 'w', encoding='utf-8') as f:
             f.write('    [%d] = {%s, %d, %s},\n' % (iid, lua_str(info[0]), info[1], lua_str(info[2])))
     f.write('}\n')
 
-json.dump(sorted(map_files), open(out_dir + '/maps.json', 'w'))
+json.dump(sorted(map_files), open('maps.json', 'w'))  # Atlas maps to copy into Media/Maps
 print('instances', len(out), 'bosses', nb, 'distinct items', len(used_items), 'without offline info', len(missing))
 print('\n'.join(report))
