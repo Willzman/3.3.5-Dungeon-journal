@@ -8,31 +8,49 @@ DJ.RegisterPage("instance", page)
 local LEFT_W = 262
 
 ------------------------------------------------------------------------
--- Boss models. Bosses with a known creature display use SetDisplayInfo;
--- the others use SetCreature, which needs the creature in the client cache.
+-- Boss models. On 3.3.5a SetCreature only draws a creature the client has
+-- cached; for others the client asks the server, and the model appears only
+-- if SetCreature is called again after the answer arrives. So the model is
+-- re-applied a few times until GetModel reports a model file.
 ------------------------------------------------------------------------
-function DJ.SetBossModel(model, boss, portrait)
+local RETRY_DELAYS = { 0.25, 0.75, 1.5, 3, 6 }
+
+local function ModelLoaded(model)
+    local m = model:GetModel()
+    return type(m) == "string" and m ~= ""
+end
+
+local function ApplyModel(model, boss)
+    if boss.npc then
+        model:SetCreature(boss.npc)
+    end
+    if not ModelLoaded(model) and boss.display and model.SetDisplayInfo then
+        pcall(model.SetDisplayInfo, model, boss.display)
+    end
+    model:SetFacing(model.baseFacing or 0)
+end
+
+function DJ.SetBossModel(model, boss)
     model.boss = boss
+    model.fallback:Hide()
     model:ClearModel()
-    if model.fallback then model.fallback:Hide() end
-    local ok = false
-    if boss.display and model.SetDisplayInfo then
-        ok = pcall(model.SetDisplayInfo, model, boss.display)
-    end
-    if not ok and boss.npc then
-        ok = pcall(model.SetCreature, model, boss.npc)
-    end
-    if portrait and model.SetCamera then pcall(model.SetCamera, model, 0) end
-    if not ok then
-        if model.fallback then model.fallback:Show() end
+    if not (boss.npc or boss.display) then
+        model.fallback:Show()
         return
     end
-    -- Show the fallback icon if nothing loaded (creature not cached yet).
-    DJ.After(0.4, function()
-        if model.boss ~= boss or not model.fallback then return end
-        local m = model:GetModel()
-        if type(m) ~= "string" or m == "" then model.fallback:Show() end
-    end)
+    ApplyModel(model, boss)
+    for i, delay in ipairs(RETRY_DELAYS) do
+        DJ.After(delay, function()
+            if model.boss ~= boss or ModelLoaded(model) then return end
+            ApplyModel(model, boss)
+            if i == #RETRY_DELAYS and not ModelLoaded(model) then model.fallback:Show() end
+        end)
+    end
+end
+
+-- Hidden models lose their model on 3.3.5a; set it again when shown.
+local function Model_OnShow(self)
+    if self.boss then DJ.SetBossModel(self, self.boss) end
 end
 
 local function BossIcon(boss)
@@ -115,6 +133,7 @@ local function CreateBossRow(list)
     row.model.fallback = row:CreateTexture(nil, "ARTWORK")
     row.model.fallback:SetAllPoints(row.portraitBg)
     row.model.fallback:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    row.model:SetScript("OnShow", Model_OnShow)
     row.icon = row:CreateTexture(nil, "ARTWORK")
     row.icon:SetAllPoints(row.portraitBg)
     row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
@@ -172,7 +191,7 @@ local function UpdateBossRow(row, boss)
         row.icon:Hide()
         row.model.fallback:SetTexture(BossIcon(boss))
         row.model:Show()
-        if row.model.boss ~= boss then DJ.SetBossModel(row.model, boss, true) end
+        if row.model.boss ~= boss then DJ.SetBossModel(row.model, boss) end
     else
         row.model:Hide()
         row.model.fallback:Hide()
@@ -230,6 +249,8 @@ bigModel.fallback = bossHeader:CreateTexture(nil, "ARTWORK")
 DJ.Size(bigModel.fallback, 56, 56)
 bigModel.fallback:SetPoint("CENTER", bigModelBg, "CENTER")
 bigModel.fallback:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+bigModel:SetScript("OnShow", Model_OnShow)
+bigModel.baseFacing = 0.35
 bigModel:EnableMouse(true)
 bigModel:SetScript("OnMouseDown", function(self) self.dragX = GetCursorPosition() end)
 bigModel:SetScript("OnMouseUp", function(self) self.dragX = nil end)
@@ -379,8 +400,7 @@ function page:SelectBoss(index)
     if boss.npc or boss.display then
         bigModel:Show()
         bigModel.fallback:SetTexture(BossIcon(boss))
-        DJ.SetBossModel(bigModel, boss, false)
-        bigModel:SetFacing(0.35)
+        DJ.SetBossModel(bigModel, boss)
     else
         bigModel:Hide()
         bigModel.fallback:SetTexture(BossIcon(boss))
