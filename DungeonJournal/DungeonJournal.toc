@@ -1,0 +1,26 @@
+## Interface: 30300
+## Title: Dungeon Journal
+## Notes: Boss, loot and map journal for every dungeon and raid on the Wrath of the Lich King 3.3.5a client.
+## Author: Exehn (original DungeonJournal), 3.3.5a edition
+## Version: 1.0.0
+## SavedVariables: DungeonJournalDB
+## SavedVariablesPerCharacter: DungeonJournalCharDB
+
+Core\Init.lua
+Core\Locale.lua
+Data\Instances.lua
+Data\Items.lua
+Core\Data.lua
+Core\Items.lua
+UI\Theme.lua
+UI\Widgets.lua
+UI\Main.lua
+UI\Home.lua
+UI\Instance.lua
+UI\Search.lua
+UI\Favourites.lua
+UI\Filter.lua
+Systems\Tooltip.lua
+Systems\Minimap.lua
+Systems\Options.lua
+Systems\Slash.lua
