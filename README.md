@@ -25,6 +25,11 @@ Interface 30300) API.
 - **Boss abilities** (Loot / Abilities buttons on each boss) for about 500 bosses: spell icon, name
   and description from your client's own spell data. Hover for the full spell tooltip; Shift-click
   to link the spell in chat.
+- **Lore** from the retail Adventure Guide: an **Overview** tab with the instance's lore (49 dungeons)
+  and a **Lore** button on 250 bosses. Dungeons that were rebuilt later (Ragefire Chasm, The Deadmines,
+  Shadowfang Keep, Scarlet Monastery, Scholomance, Zul'Gurub, Zul'Aman) keep the journal's own short
+  description, since the retail text describes the newer versions. The older raids have no lore yet:
+  their text is not in the retail game files.
 - **Map tab** with retail-style dungeon maps for every instance, floor by floor, read from the
   `patch-M.mpq` map patch in your `Data` folder. The Atlas maps (all wings and entrances) and their
   numbered map key are still there, and are used on their own when the patch is not installed.
@@ -106,6 +111,13 @@ Boss abilities come from the DBM boss mods for 3.3.5a and AzerothCore's 3.3.5a s
 ```bash
 git clone https://github.com/azerothcore/azerothcore-wotlk ac
 python3 tools/abilities.py tc ac DungeonJournal/Data/Instances.lua DungeonJournal/Data/Abilities.lua
+```
+
+Lore comes from the retail Adventure Guide tables (JournalInstance / JournalEncounter CSVs from
+maxdekrieger/wow-csv-from-db2s, build 10.1.7.51485):
+
+```bash
+python3 tools/lore.py <csv folder> DungeonJournal/Data/Instances.lua DungeonJournal/Data/Lore.lua
 ```
 
 The retail-style map floors come from the patch's file list (`tools/data/patch-M-listfile.txt`):

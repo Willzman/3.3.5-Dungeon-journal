@@ -13,6 +13,7 @@ Data\Items.lua
 Data\Portraits.lua
 Data\DungeonMaps.lua
 Data\Abilities.lua
+Data\Lore.lua
 Core\Data.lua
 Core\Items.lua
 Core\Spells.lua

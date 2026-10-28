@@ -65,7 +65,7 @@ local infoText = DJ.Text(header, "GameFontHighlight", 11)
 infoText:SetPoint("TOPLEFT", nameText, "BOTTOMLEFT", 0, -4)
 local descText = DJ.Text(header, "GameFontHighlightSmall", 11)
 descText:SetPoint("TOPLEFT", infoText, "BOTTOMLEFT", 0, -4)
-descText:SetPoint("RIGHT", -210, 0)
+descText:SetPoint("RIGHT", -304, 0)
 descText:SetHeight(26)
 descText:SetJustifyV("TOP")
 
@@ -73,6 +73,8 @@ local mapTab = DJ.Button(header, L.MAP, 90, 26, function() page:SetTab("map") en
 mapTab:SetPoint("BOTTOMRIGHT", -8, 8)
 local lootTab = DJ.Button(header, L.BOSSES, 90, 26, function() page:SetTab("loot") end)
 lootTab:SetPoint("RIGHT", mapTab, "LEFT", -4, 0)
+local overviewTab = DJ.Button(header, L.OVERVIEW, 90, 26, function() page:SetTab("overview") end)
+overviewTab:SetPoint("RIGHT", lootTab, "LEFT", -4, 0)
 
 local mapIcon = mapTab:CreateTexture(nil, "OVERLAY")
 DJ.Size(mapIcon, 18, 18)
@@ -255,6 +257,8 @@ viewButtons.loot = DJ.Button(bossHeader, L.VIEW_LOOT, 80, 22, function() page:Se
 viewButtons.loot:SetPoint("BOTTOMLEFT", bigPortraitBg, "BOTTOMRIGHT", 12, 4)
 viewButtons.abilities = DJ.Button(bossHeader, L.VIEW_ABILITIES, 80, 22, function() page:SetView("abilities") end)
 viewButtons.abilities:SetPoint("LEFT", viewButtons.loot, "RIGHT", 4, 0)
+viewButtons.lore = DJ.Button(bossHeader, L.VIEW_LORE, 80, 22, function() page:SetView("lore") end)
+viewButtons.lore:SetPoint("LEFT", viewButtons.abilities, "RIGHT", 4, 0)
 
 local function Ability_OnEnter(self)
     if not self.spell then return end
@@ -415,12 +419,65 @@ local function ShortMapTitle(title, file)
 end
 
 ------------------------------------------------------------------------
+-- Right column: overview tab (instance lore from the retail Adventure Guide)
+------------------------------------------------------------------------
+local overviewPane = CreateFrame("Frame", nil, right)
+overviewPane:SetAllPoints()
+local overviewArt = overviewPane:CreateTexture(nil, "ARTWORK")
+DJ.Size(overviewArt, 300, 140)
+overviewArt:SetPoint("TOP", 0, -16)
+local overviewTitle = DJ.Text(overviewPane, "GameFontNormalLarge", 20, "CENTER")
+overviewTitle:SetPoint("TOP", overviewArt, "BOTTOM", 0, -12)
+overviewTitle:SetPoint("LEFT", 20, 0)
+overviewTitle:SetPoint("RIGHT", -20, 0)
+local overviewInfo = DJ.Text(overviewPane, "GameFontHighlight", 12, "CENTER")
+overviewInfo:SetPoint("TOP", overviewTitle, "BOTTOM", 0, -6)
+overviewInfo:SetPoint("LEFT", 20, 0)
+overviewInfo:SetPoint("RIGHT", -20, 0)
+local overviewText = DJ.Text(overviewPane, "GameFontHighlight", 13)
+overviewText:SetPoint("TOPLEFT", overviewInfo, "BOTTOMLEFT", 10, -16)
+overviewText:SetPoint("BOTTOMRIGHT", -30, 16)
+overviewText:SetJustifyV("TOP")
+overviewPane.OnTheme = function(_, t)
+    overviewTitle:SetTextColor(t.title[1], t.title[2], t.title[3])
+    overviewInfo:SetTextColor(t.muted[1], t.muted[2], t.muted[3])
+    overviewText:SetTextColor(t.text[1], t.text[2], t.text[3])
+end
+table.insert(DJ.themedRegions, overviewPane)
+
+local function ShowOverview(inst)
+    if DJ.SetCoverArt(overviewArt, inst) then overviewArt:Show() else overviewArt:Hide() end
+    overviewTitle:SetText(inst.name)
+    local info = { inst.zone }
+    if inst.kind == "dungeon" then info[#info + 1] = string.format(L.LEVELS, inst.levelRange or "?") end
+    for _, m in ipairs(inst.modes) do info[#info + 1] = DJ.ModeLabel(inst, m) end
+    overviewInfo:SetText(table.concat(info, "   |cff808080-|r   "))
+    overviewText:SetText(DJ.Lore.instances[inst.key] or inst.desc or "")
+end
+
+-- Boss lore (shown by the boss header's Lore button)
+local bossLoreText = DJ.Text(lootPane, "GameFontHighlight", 13)
+bossLoreText:SetPoint("TOPLEFT", bossHeader, "BOTTOMLEFT", 12, -16)
+bossLoreText:SetPoint("BOTTOMRIGHT", -20, 16)
+bossLoreText:SetJustifyV("TOP")
+bossLoreText:Hide()
+
+------------------------------------------------------------------------
 -- Page logic
 ------------------------------------------------------------------------
 function page:SetTab(tab)
     self.tab = tab
+    overviewTab:SetSelected(tab == "overview")
     lootTab:SetSelected(tab == "loot")
     mapTab:SetSelected(tab == "map")
+    if tab == "overview" then
+        lootPane:Hide(); mapPane:Hide(); legendList:Hide(); legendTitle:Hide()
+        bossList:Show()
+        overviewPane:Show()
+        ShowOverview(self.inst)
+        return
+    end
+    overviewPane:Hide()
     if tab == "map" and (self.inst.maps or RetailFloors(self.inst)) then
         lootPane:Hide(); bossList:Hide()
         mapPane:Show(); legendList:Show(); legendTitle:Show()
@@ -549,23 +606,29 @@ end
 
 -- "loot" or "abilities" for the selected boss.
 function page:SetView(view)
-    local abilities = self.boss and DJ.BossAbilities(self.boss) or {}
-    if self.boss and (self.boss.extra or #abilities == 0) then
-        viewButtons.abilities:Disable()
-        if view == "abilities" then view = "loot" end
+    local boss = self.boss
+    local abilities = boss and DJ.BossAbilities(boss) or {}
+    local lore = boss and DJ.Lore.bosses[boss.instance.key .. "#" .. boss.index]
+    local hasAbilities = boss and not boss.extra and #abilities > 0
+    if hasAbilities then viewButtons.abilities:Enable() else viewButtons.abilities:Disable() end
+    if lore then viewButtons.lore:Enable() else viewButtons.lore:Disable() end
+    if (view == "abilities" and not hasAbilities) or (view == "lore" and not lore) then
+        view = "loot"
     else
-        viewButtons.abilities:Enable()
         DJ.db.bossView = view
     end
     self.view = view
     for v, b in pairs(viewButtons) do b:SetSelected(v == view) end
+    lootList:Hide(); abilityList:Hide(); bossLoreText:Hide(); filterNote:Hide(); emptyText:Hide()
     if view == "abilities" then
-        lootList:Hide(); filterNote:Hide()
         abilityList:Show()
         abilityList:SetData(abilities)
-        emptyText:Hide()
+    elseif view == "lore" then
+        bossLoreText:SetText(lore)
+        local t = DJ.theme
+        bossLoreText:SetTextColor(t.text[1], t.text[2], t.text[3])
+        bossLoreText:Show()
     else
-        abilityList:Hide()
         lootList:Show()
         self:RefreshLoot()
     end
@@ -573,7 +636,7 @@ end
 
 function page:RefreshLoot(keepOffset)
     local boss = self.boss
-    if not boss or self.view == "abilities" then return end
+    if not boss or (self.view and self.view ~= "loot") then return end
     local loot = DJ.GetLoot(boss, self.mode) or {}
     local data, filtering = {}, DJ.FilterActive()
     local pendingHeader

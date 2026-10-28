@@ -67,6 +67,23 @@ for _, f in ipairs(AllFrames()) do if rawget(f, "spell") and f:IsVisible() then 
 check(rows >= 2, "Taragaman ability rows shown (" .. rows .. ")")
 DJ.pages.instance:SetView("loot")
 
+-- Overview tab and boss lore
+DJ.OpenInstance("UtgardeKeep", 1)
+DJ.pages.instance:SetTab("overview")
+check(DJ.pages.instance.tab == "overview", "overview tab")
+DJ.pages.instance:SelectBoss(1)
+check(DJ.pages.instance.tab == "loot", "boss click returns to the boss page")
+DJ.pages.instance:SetView("lore")
+check(DJ.pages.instance.view == "lore", "Keleseth has lore")
+DJ.OpenInstance("Ragefire", 1)
+DJ.pages.instance:SetView("lore")
+check(DJ.pages.instance.view == "loot", "no lore for rebuilt Ragefire falls back to loot")
+for _, inst in ipairs(DJ.Instances) do
+    DJ.OpenInstance(inst)
+    DJ.pages.instance:SetTab("overview")
+end
+DJ.db.bossView = "loot"
+
 -- Item requests resolve and refresh
 for i = 1, 200 do AdvanceTime(0.2) end
 
