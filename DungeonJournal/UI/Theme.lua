@@ -112,6 +112,37 @@ local function LFGTextureFor(inst)
     return nil
 end
 
+-- Art names shipped in Interface\LFGFrame of the 3.3.5a client (UI-LFG-BACKGROUND-<name>),
+-- per instance. The LFG lookup above is only a fallback for anything missing here.
+local ART = {
+    Ragefire = "RAGEFIRECHASM", WailingCaverns = "WAILINGCAVERNS", TheDeadmines = "DEADMINES",
+    ShadowfangKeep = "SHADOWFANGKEEP", BlackfathomDeeps = "BLACKFATHOMDEEPS", TheStockade = "STORMWINDSTOCKADES",
+    Gnomeregan = "GNOMEREGAN", RazorfenKraul = "RAZORFENKRAUL", ScarletMonasteryGraveyard = "SCARLETMONASTERY",
+    ScarletMonasteryLibrary = "SCARLETMONASTERY", ScarletMonasteryArmory = "SCARLETMONASTERY",
+    ScarletMonasteryCathedral = "SCARLETMONASTERY", RazorfenDowns = "RAZORFENDOWNS", Uldaman = "ULDAMAN",
+    ["Zul'Farrak"] = "ZULFARAK", Maraudon = "MARAUDON", ["TheTempleOfAtal'Hakkar"] = "SUNKENTEMPLE",
+    BlackrockDepths = "BLACKROCKDEPTHS", LowerBlackrockSpire = "BLACKROCKSPIRE", UpperBlackrockSpire = "BLACKROCKSPIRE",
+    DireMaulEast = "DIREMAUL", DireMaulWest = "DIREMAUL", DireMaulNorth = "DIREMAUL", Scholomance = "SCHOLOMANCE",
+    Stratholme = "STRATHOLME", MoltenCore = "MOLTENCORE", BlackwingLair = "BLACKWINGLAIR", ["Zul'Gurub"] = "ZULGURUB",
+    TheRuinsofAhnQiraj = "AQRUINS", TheTempleofAhnQiraj = "AQTEMPLE",
+    HellfireRamparts = "HELLFIRECITADEL", TheBloodFurnace = "HELLFIRECITADEL", TheShatteredHalls = "HELLFIRECITADEL",
+    TheSlavePens = "COILFANG", TheUnderbog = "COILFANG", TheSteamvault = "COILFANG",
+    ["Mana-Tombs"] = "AUCHINDOUN", AuchenaiCrypts = "AUCHINDOUN", SethekkHalls = "AUCHINDOUN", ShadowLabyrinth = "AUCHINDOUN",
+    OldHillsbradFoothills = "CAVERNSOFTIME", TheBlackMorass = "CAVERNSOFTIME",
+    TheMechanar = "TEMPESTKEEP", TheBotanica = "TEMPESTKEEP", TheArcatraz = "TEMPESTKEEP",
+    MagistersTerrace = "MAGISTERSTERRACE", Karazhan = "KARAZHAN", ZulAman = "ZULAMAN", GruulsLair = "GRUULSLAIR",
+    MagtheridonsLair = "HELLFIRECITADELRAID", SerpentshrineCavern = "COILFANG", TempestKeep = "TEMPESTKEEP",
+    HyjalSummit = "HYJALPAST", BlackTemple = "BLACKTEMPLE", SunwellPlateau = "SUNWELL",
+    UtgardeKeep = "UTGARDE", TheNexus = "THENEXUS", AzjolNerub = "AZJOLNERUB", AhnKahet = "AHNKALET",
+    DrakTharonKeep = "DRAKTHARON", VioletHold = "THEVIOLETHOLD", Gundrak = "GUNDRAK", HallsofStone = "HALLSOFSTONE",
+    HallsofLightning = "HALLSOFLIGHTNING", TheOculus = "THEOCULUS", UtgardePinnacle = "UTGARDEPINNACLE",
+    TheCullingOfStratholme = "CAVERNSOFTIME", TrialoftheChampion = "ARGENTDUNGEON", ForgeOfSouls = "THEFORGEOFSOULS",
+    PitOfSaron = "PITOFSARON", HallsOfReflection = "HALLSOFREFLECTION", NaxxramasWrath = "NAXXRAMAS",
+    ObsidianSanctum = "CHAMBEROFASPECTS", TheEyeOfEternity = "MALYGOS", VaultofArchavon = "VAULTOFARCHAVON",
+    Ulduar = "ULDUAR", TrialoftheCrusader = "ARGENTRAID", WrathOnyxiasLair = "ONYXIAENCOUNTER",
+    IcecrownCitadel = "ICECROWNCITADEL", RubySanctum = "CHAMBEROFASPECTS",
+}
+
 local artCache = {}
 -- Sets the cover art of `inst` on `texture`; returns true when art was found.
 function DJ.SetCoverArt(texture, inst)
@@ -122,18 +153,18 @@ function DJ.SetCoverArt(texture, inst)
         texture:SetTexCoord(unpack(cached[2]))
         return true
     end
-    local tex = LFGTextureFor(inst)
-    if tex then
-        local candidates = {
-            { "Interface\\LFGFrame\\UI-LFG-BACKGROUND-" .. tex, { 0, 1, 0.04, 0.92 } },
-            { "Interface\\LFGFrame\\LFGIcon-" .. tex, { 0.08, 0.92, 0.08, 0.92 } },
-        }
-        for _, c in ipairs(candidates) do
-            if texture:SetTexture(c[1]) then
-                texture:SetTexCoord(unpack(c[2]))
-                artCache[inst.key] = c
-                return true
-            end
+    local candidates = {}
+    for _, tex in ipairs({ ART[inst.key], LFGTextureFor(inst) }) do
+        candidates[#candidates + 1] = { "Interface\\LFGFrame\\UI-LFG-BACKGROUND-" .. tex, { 0, 1, 0.04, 0.92 } }
+    end
+    for _, tex in ipairs({ ART[inst.key], LFGTextureFor(inst) }) do
+        candidates[#candidates + 1] = { "Interface\\LFGFrame\\LFGIcon-" .. tex, { 0.08, 0.92, 0.08, 0.92 } }
+    end
+    for _, c in ipairs(candidates) do
+        if texture:SetTexture(c[1]) then
+            texture:SetTexCoord(unpack(c[2]))
+            artCache[inst.key] = c
+            return true
         end
     end
     artCache[inst.key] = false
