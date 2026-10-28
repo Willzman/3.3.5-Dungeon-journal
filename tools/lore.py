@@ -60,8 +60,10 @@ def clean(text):
 
 ji_by_name = {}
 for r in journal_instances:
-    if r['Description_lang'].strip():
-        ji_by_name.setdefault(norm(r['Name_lang']), r)
+    # Prefer the row with text when a name appears twice; raids keep their (blank) row so
+    # their encounters can still be matched.
+    if r['Description_lang'].strip() or norm(r['Name_lang']) not in ji_by_name:
+        ji_by_name[norm(r['Name_lang'])] = r
 
 enc_by_instance = {}
 for e in encounters:
@@ -93,7 +95,7 @@ def lua_str(s):
 inst_lore, boss_lore, missing_inst, missing_boss = {}, {}, [], []
 for key, name, bosses in ours:
     ji = ji_by_name.get(norm(INSTANCE_NAMES.get(key, name)))
-    if ji and key not in SKIP_INSTANCE_LORE:
+    if ji and ji['Description_lang'].strip() and key not in SKIP_INSTANCE_LORE:
         inst_lore[key] = clean(ji['Description_lang'])
     elif key not in SKIP_INSTANCE_LORE:
         missing_inst.append(name)
@@ -107,8 +109,6 @@ for key, name, bosses in ours:
             n = norm(w)
             hit = next((e for e in local if e['Description_lang'].strip()
                         and (norm(e['Name_lang']) == n or n in names_of_encounter.get(e['ID'], ()))), None)
-            if not hit and len(enc_by_name.get(n, [])) == 1:
-                hit = enc_by_name[n][0]  # unique name anywhere in the guide
             if hit:
                 break
         if hit:

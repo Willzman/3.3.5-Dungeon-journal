@@ -75,9 +75,15 @@ DJ.pages.instance:SelectBoss(1)
 check(DJ.pages.instance.tab == "loot", "boss click returns to the boss page")
 DJ.pages.instance:SetView("lore")
 check(DJ.pages.instance.view == "lore", "Keleseth has lore")
-DJ.OpenInstance("Ragefire", 1)
+DJ.OpenInstance("IcecrownCitadel", 12)
 DJ.pages.instance:SetView("lore")
-check(DJ.pages.instance.view == "loot", "no lore for rebuilt Ragefire falls back to loot")
+check(DJ.pages.instance.view == "lore", "the Lich King has lore")
+DJ.OpenInstance("TheDeadmines", 2)
+DJ.pages.instance:SetView("lore")
+check(DJ.pages.instance.view == "loot", "Miner Johnson has no lore and falls back to loot")
+local n = 0
+for _ in pairs(DJ.Lore.instances) do n = n + 1 end
+check(n == #DJ.Instances, "every instance has an overview")
 for _, inst in ipairs(DJ.Instances) do
     DJ.OpenInstance(inst)
     DJ.pages.instance:SetTab("overview")

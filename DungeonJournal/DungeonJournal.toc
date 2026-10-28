@@ -14,6 +14,7 @@ Data\Portraits.lua
 Data\DungeonMaps.lua
 Data\Abilities.lua
 Data\Lore.lua
+Data\LoreCustom.lua
 Core\Data.lua
 Core\Items.lua
 Core\Spells.lua

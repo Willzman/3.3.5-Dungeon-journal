@@ -25,11 +25,11 @@ Interface 30300) API.
 - **Boss abilities** (Loot / Abilities buttons on each boss) for about 500 bosses: spell icon, name
   and description from your client's own spell data. Hover for the full spell tooltip; Shift-click
   to link the spell in chat.
-- **Lore** from the retail Adventure Guide: an **Overview** tab with the instance's lore (49 dungeons)
-  and a **Lore** button on 250 bosses. Dungeons that were rebuilt later (Ragefire Chasm, The Deadmines,
-  Shadowfang Keep, Scarlet Monastery, Scholomance, Zul'Gurub, Zul'Aman) keep the journal's own short
-  description, since the retail text describes the newer versions. The older raids have no lore yet:
-  their text is not in the retail game files.
+- **Lore**: an **Overview** tab for every instance and a **Lore** button on about 400 bosses. Most
+  dungeon text is the retail Adventure Guide's. Raids, and the dungeons that were rebuilt after Wrath
+  (Ragefire Chasm, The Deadmines, Shadowfang Keep, Scarlet Monastery, Scholomance, Zul'Gurub,
+  Zul'Aman), use summaries written for this journal (`Data/LoreCustom.lua`), since the retail text is
+  either missing from the game files or describes the newer versions.
 - **Map tab** with retail-style dungeon maps for every instance, floor by floor, read from the
   `patch-M.mpq` map patch in your `Data` folder. The Atlas maps (all wings and entrances) and their
   numbered map key are still there, and are used on their own when the patch is not installed.
