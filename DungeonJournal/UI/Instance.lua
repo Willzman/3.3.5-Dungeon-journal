@@ -250,7 +250,10 @@ filterNote:SetPoint("TOPRIGHT", -8, -6)
 filterNote:SetText("|cffff8040" .. L.FILTER_ACTIVE .. "|r")
 
 ------------------------------------------------------------------------
--- Right column: map tab
+-- Right column: map tab. Two kinds of map:
+--  * retail-style dungeon maps from the client's map patch, drawn like the
+--    3.3.5a world map: 4x3 tiles of 256px showing a 1002x668 area per floor;
+--  * the bundled Atlas maps (512x512, with the numbered map key).
 ------------------------------------------------------------------------
 local mapPane = CreateFrame("Frame", nil, right)
 mapPane:SetAllPoints()
@@ -260,13 +263,84 @@ local mapEmpty = DJ.Text(mapPane, "GameFontDisable", 13, "CENTER")
 mapEmpty:SetPoint("CENTER")
 mapEmpty:SetText(L.MAP_NONE)
 
+local MAP_W, MAP_H, TILE = 1002, 668, 256
+local tiles = {}
+for i = 1, 12 do
+    tiles[i] = mapPane:CreateTexture(nil, "ARTWORK")
+    local col, row = (i - 1) % 4, math.floor((i - 1) / 4)
+    -- The last column and row only partly show, as on the world map.
+    tiles[i].u = col == 3 and (MAP_W - 3 * TILE) / TILE or 1
+    tiles[i].v = row == 2 and (MAP_H - 2 * TILE) / TILE or 1
+    tiles[i].col, tiles[i].row = col, row
+    tiles[i]:SetTexCoord(0, tiles[i].u, 0, tiles[i].v)
+end
+
+local floorText = DJ.Text(mapPane, "GameFontNormal", 12, "CENTER")
+local floorPrev = DJ.Button(mapPane, "<", 24, 22, function() page:ShowFloor(page.floor - 1) end)
+local floorNext = DJ.Button(mapPane, ">", 24, 22, function() page:ShowFloor(page.floor + 1) end)
+floorNext:SetPoint("TOPRIGHT", -8, -6)
+floorText:SetPoint("RIGHT", floorNext, "LEFT", -6, 0)
+floorText:SetWidth(80)
+floorPrev:SetPoint("RIGHT", floorText, "LEFT", -6, 0)
+mapPane.OnTheme = function(_, t) floorText:SetTextColor(t.title[1], t.title[2], t.title[3]) end
+table.insert(DJ.themedRegions, mapPane)
+
+local function TilePath(floor, i)
+    local folder, base, n = floor[1], floor[2], floor[3]
+    if n then return "Interface\\WorldMap\\" .. folder .. "\\" .. base .. n .. "_" .. i end
+    return "Interface\\WorldMap\\" .. folder .. "\\" .. base .. i
+end
+
+-- Retail-style floors present in this client (cached per instance), or nil.
+local retailCache = {}
+local function RetailFloors(inst)
+    local cached = retailCache[inst.key]
+    if cached ~= nil then return cached or nil end
+    local def = DJ.DungeonMaps and DJ.DungeonMaps[inst.key]
+    local found = false
+    if def then
+        local list = {}
+        for _, floor in ipairs(def) do
+            if tiles[1]:SetTexture(TilePath(floor, 1)) then list[#list + 1] = floor end
+        end
+        if #list > 0 then
+            found = list
+            list.start = math.min(def.start or 1, #list)
+        end
+    end
+    retailCache[inst.key] = found
+    return found or nil
+end
+
+local function HideMapContent()
+    mapTexture:Hide()
+    for i = 1, 12 do tiles[i]:Hide() end
+    floorPrev:Hide(); floorNext:Hide(); floorText:Hide()
+    mapEmpty:Hide()
+end
+
+local function TopOffset()
+    return (#mapButtons > 0 and mapButtons[1]:IsShown() or floorText:IsShown()) and 34 or 8
+end
+
 local function LayoutMap()
-    local top = (#page.inst.maps > 1) and 34 or 8
+    local top = TopOffset()
     local w, h = mapPane:GetWidth() - 16, mapPane:GetHeight() - top - 8
-    local size = math.max(100, math.min(w, h))
-    DJ.Size(mapTexture, size, size)
-    mapTexture:ClearAllPoints()
-    mapTexture:SetPoint("TOP", mapPane, "TOP", 0, -top)
+    if page.mapKind == "retail" then
+        local scale = math.min(w / MAP_W, h / MAP_H)
+        local left = (mapPane:GetWidth() - MAP_W * scale) / 2
+        for i = 1, 12 do
+            local t = tiles[i]
+            DJ.Size(t, TILE * t.u * scale, TILE * t.v * scale)
+            t:ClearAllPoints()
+            t:SetPoint("TOPLEFT", mapPane, "TOPLEFT", left + t.col * TILE * scale, -top - t.row * TILE * scale)
+        end
+    else
+        local size = math.max(100, math.min(w, h))
+        DJ.Size(mapTexture, size, size)
+        mapTexture:ClearAllPoints()
+        mapTexture:SetPoint("TOP", mapPane, "TOP", 0, -top)
+    end
 end
 
 local function ShortMapTitle(title, file)
@@ -284,50 +358,98 @@ function page:SetTab(tab)
     self.tab = tab
     lootTab:SetSelected(tab == "loot")
     mapTab:SetSelected(tab == "map")
-    if tab == "map" and self.inst.maps then
+    if tab == "map" and (self.inst.maps or RetailFloors(self.inst)) then
         lootPane:Hide(); bossList:Hide()
         mapPane:Show(); legendList:Show(); legendTitle:Show()
-        self:ShowMap(DJ.cdb.lastMap[self.inst.key] or 1)
+        self:ShowMap(DJ.cdb.mapView[self.inst.key] or (RetailFloors(self.inst) and "retail") or 1)
     else
         mapPane:Hide(); legendList:Hide(); legendTitle:Hide()
         lootPane:Show(); bossList:Show()
         if tab == "map" then -- no maps: show a note instead
             lootPane:Hide(); mapPane:Show()
-            mapTexture:Hide(); mapEmpty:Show()
+            HideMapContent(); mapEmpty:Show()
         end
     end
 end
 
-function page:ShowMap(index)
-    local maps = self.inst.maps
-    if not maps or not maps[index] then index = 1 end
-    DJ.cdb.lastMap[self.inst.key] = index
-    local m = maps[index]
-    mapEmpty:Hide()
-    mapTexture:Show()
-    mapTexture:SetTexture(DJ.MEDIA .. "Maps\\" .. m.file)
-    for i, b in ipairs(mapButtons) do b:Hide() end
-    if #maps > 1 then
-        local prevButton
-        for i, mp in ipairs(maps) do
-            local b = mapButtons[i]
-            if not b then
-                b = DJ.Button(mapPane, "", 100, 22, function(self) page:ShowMap(self.index) end)
-                mapButtons[i] = b
-            end
-            b.index = i
-            b.label:SetText(ShortMapTitle(mp.title, mp.file))
-            b:SetWidth(math.min(150, b.label:GetStringWidth() + 20))
-            b:ClearAllPoints()
-            if prevButton then b:SetPoint("LEFT", prevButton, "RIGHT", 4, 0) else b:SetPoint("TOPLEFT", 8, -6) end
-            prevButton = b
-            b:SetSelected(i == index)
-            b:Show()
+-- Map buttons: "Dungeon Map" (retail floors, when the patch has them), then each Atlas map.
+local function UpdateMapButtons(inst, selected)
+    for _, b in ipairs(mapButtons) do b:Hide() end
+    local entries = {}
+    if RetailFloors(inst) then entries[#entries + 1] = { "retail", L.MAP_DUNGEON } end
+    for i, mp in ipairs(inst.maps or {}) do
+        local label = ShortMapTitle(mp.title, mp.file)
+        if #inst.maps == 1 then label = L.MAP_ATLAS end
+        entries[#entries + 1] = { i, label }
+    end
+    if #entries < 2 then return end
+    local prevButton
+    for i, e in ipairs(entries) do
+        local b = mapButtons[i]
+        if not b then
+            b = DJ.Button(mapPane, "", 100, 22, function(self) page:ShowMap(self.mapId) end)
+            mapButtons[i] = b
         end
+        b.mapId = e[1]
+        b.label:SetText(e[2])
+        b:SetWidth(math.min(120, b.label:GetStringWidth() + 16))
+        b:ClearAllPoints()
+        if prevButton then b:SetPoint("LEFT", prevButton, "RIGHT", 3, 0) else b:SetPoint("TOPLEFT", 8, -6) end
+        prevButton = b
+        b:SetSelected(e[1] == selected)
+        b:Show()
+    end
+end
+
+-- id: "retail" or the index of an Atlas map.
+function page:ShowMap(id)
+    local inst = self.inst
+    local floors = RetailFloors(inst)
+    if id == "retail" and not floors then id = 1 end
+    if id ~= "retail" and not (inst.maps and inst.maps[id]) then id = floors and "retail" or 1 end
+    DJ.cdb.mapView[inst.key] = id
+    HideMapContent()
+    UpdateMapButtons(inst, id)
+    local legendMap = inst.maps and inst.maps[id ~= "retail" and id or 1]
+    if id == "retail" then
+        self.mapKind = "retail"
+        self:ShowFloor(DJ.cdb.lastFloor and DJ.cdb.lastFloor[inst.key] or floors.start)
+    elseif legendMap then
+        self.mapKind = "atlas"
+        mapTexture:SetTexture(DJ.MEDIA .. "Maps\\" .. legendMap.file)
+        mapTexture:Show()
+        LayoutMap()
+    else
+        mapEmpty:Show()
+    end
+    if legendMap then
+        legendTitle:SetText(id == "retail" and (L.MAP_LEGEND .. " (Atlas)") or legendMap.title)
+        legendList:SetData(legendMap.legend)
+    else
+        legendTitle:SetText(L.MAP_LEGEND)
+        legendList:SetData({})
+    end
+end
+
+function page:ShowFloor(n)
+    local floors = RetailFloors(self.inst)
+    if not floors then return end
+    n = math.max(1, math.min(#floors, n or 1))
+    self.floor = n
+    DJ.cdb.lastFloor = DJ.cdb.lastFloor or {}
+    DJ.cdb.lastFloor[self.inst.key] = n
+    for i = 1, 12 do
+        tiles[i]:SetTexture(TilePath(floors[n], i))
+        tiles[i]:Show()
+    end
+    if #floors > 1 then
+        floorText:SetText(string.format(L.MAP_FLOOR, n, #floors))
+        floorText:Show(); floorPrev:Show(); floorNext:Show()
+        if n > 1 then floorPrev:Enable() else floorPrev:Disable() end
+        if n < #floors then floorNext:Enable() else floorNext:Disable() end
+        DJ.StyleButton(floorPrev); DJ.StyleButton(floorNext)
     end
     LayoutMap()
-    legendTitle:SetText(m.title)
-    legendList:SetData(m.legend)
 end
 
 function page:SetMode(mode)
@@ -420,7 +542,7 @@ function page:Open(state)
     if inst.faction then info[#info + 1] = inst.faction end
     infoText:SetText(table.concat(info, "   |cff808080-|r   "))
     descText:SetText(inst.desc or "")
-    if inst.maps then mapTab:Enable() else mapTab:Disable() end
+    if inst.maps or RetailFloors(inst) then mapTab:Enable() else mapTab:Disable() end
 
     -- Mode buttons, right-aligned under the boss name.
     local prevButton
@@ -454,7 +576,7 @@ function page:Open(state)
 end
 
 page:SetScript("OnSizeChanged", function()
-    if page.inst and page.tab == "map" and page.inst.maps then LayoutMap() end
+    if page.inst and page.tab == "map" then LayoutMap() end
 end)
 
 DJ.On("ITEMS_UPDATED", function()

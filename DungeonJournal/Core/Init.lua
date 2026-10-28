@@ -26,6 +26,8 @@ local CHAR_DEFAULTS = {
     lastBoss = {},
     lastMode = {},
     lastMap = {},
+    mapView = {},
+    lastFloor = {},
 }
 
 local function ApplyDefaults(db, defaults)

@@ -22,7 +22,9 @@ Interface 30300) API.
     for Wrath raids.
   - **Faction-specific loot** (Trial of the Crusader, Koralon, etc.) shows your faction's items.
   - **Trash drops** and extra pages (patterns, chests, bonus loot).
-- **Map tab** with the Atlas map of each instance (all wings and entrances) and its numbered map key.
+- **Map tab** with retail-style dungeon maps for every instance, floor by floor, read from the
+  `patch-M.mpq` map patch in your `Data` folder. The Atlas maps (all wings and entrances) and their
+  numbered map key are still there, and are used on their own when the patch is not installed.
 - **Item tooltips** with Shift-compare; Shift-click to link in chat, Ctrl-click to try on.
   Items not cached yet show their name and quality from bundled data, then load from the server.
 - **Search** across instances, bosses and loot (`Enter` in the search box, or `/dj search <text>`).
@@ -94,6 +96,12 @@ python3 tools/convert.py al_raw.json enh.json atlas.json DungeonJournal/Data
 ```
 
 Instance names, zones, short codes, map pages and the Enhanced overrides are listed in `tools/meta.py`.
+
+The retail-style map floors come from the patch's file list (`tools/data/patch-M-listfile.txt`):
+
+```bash
+python3 tools/dungeonmaps.py tools/data/patch-M-listfile.txt DungeonJournal/Data/DungeonMaps.lua
+```
 
 ## Testing
 

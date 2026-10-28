@@ -11,6 +11,7 @@ Core\Locale.lua
 Data\Instances.lua
 Data\Items.lua
 Data\Portraits.lua
+Data\DungeonMaps.lua
 Core\Data.lua
 Core\Items.lua
 UI\Theme.lua

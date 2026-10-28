@@ -33,11 +33,17 @@ for _, inst in ipairs(DJ.Instances) do
             AdvanceTime(0.5)
         end
     end
+    page:SetTab("map")
+    check(page.mapKind == "retail", "dungeon map shown first for " .. inst.name)
+    local floors = DJ.DungeonMaps[inst.key]
+    for f = 1, #floors do page:ShowFloor(f) end
+    check(page.floor == #floors, "floors for " .. inst.name)
     if inst.maps then
-        page:SetTab("map")
         for i = 1, #inst.maps do page:ShowMap(i) end
-        page:SetTab("loot")
+        check(page.mapKind == "atlas", "atlas map for " .. inst.name)
+        page:ShowMap("retail")
     end
+    page:SetTab("loot")
 end
 print(string.format("visited %d instances, %d boss pages", #DJ.Instances, pages))
 
