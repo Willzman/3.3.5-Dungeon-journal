@@ -25,7 +25,7 @@ Interface 30300) API.
 - **Boss abilities** (Loot / Abilities buttons on each boss) for about 500 bosses: spell icon, name
   and description from your client's own spell data. Hover for the full spell tooltip; Shift-click
   to link the spell in chat.
-- **Lore**: an **Overview** tab for every instance and a **Lore** button on about 400 bosses. Most
+- **Lore**: an **Overview** tab for every instance and a **Lore** button on about 440 bosses. Most
   dungeon text is the retail Adventure Guide's. Raids, and the dungeons that were rebuilt after Wrath
   (Ragefire Chasm, The Deadmines, Shadowfang Keep, Scarlet Monastery, Scholomance, Zul'Gurub,
   Zul'Aman), use summaries written for this journal (`Data/LoreCustom.lua`), since the retail text is
