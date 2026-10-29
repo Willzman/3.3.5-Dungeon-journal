@@ -10,7 +10,7 @@ local LEFT_W = 262
 ------------------------------------------------------------------------
 -- Boss portraits: Encounter Journal art bundled in Media/Bosses (2:1 images).
 -- The 3.3.5a client cannot draw creature models it has not cached, so there
--- are no 3D models. Bosses without a portrait show their instance's art.
+-- are no 3D models. Bosses without a portrait show the retail placeholder.
 ------------------------------------------------------------------------
 local function ExtraIcon(boss)
     if boss.trash then return "Interface\\Icons\\INV_Misc_Bag_09" end
@@ -30,17 +30,10 @@ function DJ.SetBossPortrait(portrait, icon, boss)
     portrait:Show()
     local p = DJ.Portraits[boss.name]
     if type(p) == "table" then p = p[DJ.PlayerFaction()] end
-    if p then
-        portrait:SetTexture(DJ.MEDIA .. "Bosses\\" .. p)
-        portrait:SetTexCoord(0, 1, 0, 1)
-        portrait:SetVertexColor(1, 1, 1)
-    elseif DJ.SetCoverArt(portrait, boss.instance) then
-        portrait:SetVertexColor(0.75, 0.75, 0.75)
-    else
-        portrait:Hide()
-        icon:SetTexture(DJ.KIND_ICONS[boss.instance.kind])
-        icon:Show()
-    end
+    -- No portrait: retail's placeholder silhouette, as in the retail journal.
+    portrait:SetTexture(DJ.MEDIA .. "Bosses\\" .. (p or "default"))
+    portrait:SetTexCoord(0, 1, 0, 1)
+    portrait:SetVertexColor(1, 1, 1)
 end
 
 ------------------------------------------------------------------------
