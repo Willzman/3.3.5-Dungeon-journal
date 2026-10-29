@@ -284,6 +284,11 @@ local bosses = {
     ["Zul'Gurub#6"] = "Hazza'rah the Dreamweaver is one of four legendary troll champions that can be called up at the Edge of Madness in Zul'Gurub.",
     ["Zul'Gurub#7"] = "Renataki of the Thousand Blades is one of four legendary troll champions that can be called up at the Edge of Madness in Zul'Gurub.",
     ["Zul'Gurub#8"] = "Wushoolay the Storm Witch is one of four legendary troll champions that can be called up at the Edge of Madness in Zul'Gurub.",
+    -- Remaining Burning Crusade and Wrath bosses worth a page
+    ["HellfireRamparts#3"] = "Vazruden the Herald and his dragon Nazan guard the Hellfire Ramparts for the fel orcs of Hellfire Citadel. When Vazruden falls, Nazan swoops down from the sky to fight on.",
+    ["TheMechanar#4"] = "Gatewatcher Gyro-Kill is a huge mechanical construct that guards the halls of the Mechanar for Kael'thas's blood elves.",
+    ["TheMechanar#5"] = "Gatewatcher Iron-Hand is a huge mechanical construct that guards the halls of the Mechanar for Kael'thas's blood elves.",
+    ["TheCullingOfStratholme#5"] = "The infinite dragonflight sends the Infinite Corruptor to Stratholme to change the course of history. On heroic difficulty he must be defeated before time runs out, or he escapes.",
 }
 
 -- Data/Lore.lua (retail Adventure Guide text) takes priority.
